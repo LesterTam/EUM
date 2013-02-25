@@ -39,7 +39,7 @@ Private Const PUB_ADVFN_SERVER_STR As String = "ca"
 Private Const PUB_ADVFN_URL_STR As String = ".advfn.com/p.php?pid=financials"
 '-----------------------------------------------------------------------------------------------------------
 Private Const PUB_WEB_DATA_VERSION_STR As String = "2.25.2013" 'Version number of add-in
-Private Const PUB_WEB_DATA_FILES_PATH_STR As String = "http://www.rnfc.org/System/Elements_Definition/smf-elements-"
+Private Const PUB_WEB_DATA_FILES_PATH_STR As String = "https://raw.github.com/rnfermincota/IVEY/master/smf-elements/smf-elements-"
 '"C:\Documents and Settings\HOME\Application Data\Microsoft\AddIns\smf-elements-"
 Private Const PUB_WEB_DATA_ELEMENT_LOOK_STR As String = "~~~~~"
 Private Const PUB_WEB_DATA_ELEMENT_DELIM_STR As String = ";"
