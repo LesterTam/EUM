@@ -250,8 +250,6 @@ Dim FSO_OBJ As Object
 Dim FILES_OBJ As Object
 Dim FOLDER_OBJ As Object
 
-Dim FILES_PATH_STR As String
-
 On Error GoTo ERROR_LABEL
 
 Set FSO_OBJ = CreateObject("Scripting.FileSystemObject")
