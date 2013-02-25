@@ -50,11 +50,9 @@ Public Sub UserForm_Initialize()
 On Error Resume Next
 
 frmCharts.Preset.Clear
-frmCharts.Preset.AddItem "Trading Physics Generic Real Time Chart"
 frmCharts.Preset.AddItem "Yahoo Finance 1-Day Range"
 frmCharts.Preset.AddItem "Yahoo Finance 1-Week Range"
 frmCharts.Preset.AddItem "Implied Volatility"
-frmCharts.Preset.AddItem "Morningstar Statements - PB,PC,PE,PS,RG,OIG,EPSG,EQG,CFO,EPS,ROEG10,ROAG10,PROA,ROEA,TOTR,CR,DE,DTC"
 frmCharts.Preset.AddItem "Finviz daily technical chart"
 frmCharts.Preset.AddItem "Finviz intraday basic"
 frmCharts.Preset.AddItem "Fred Historical Charts"

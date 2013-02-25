@@ -272,26 +272,7 @@ For k = 1 To NROWS
 '-----------------------------------------------------------------------------------------
 Select Case VERSION
 '-----------------------------------------------------------------------------------------
-'-----------------------------------------------------------------------------------------
-Case 1 'Trading Physics Generic Real Time Chart
-'http://www.tradingphysics.com/Help/Definitions.aspx
-'-----------------------------------------------------------------------------------------
-     REF_URL_STR = "http://www.tradingphysics.com:42000/getchart?type=pi&date=" & _
-     Format(Now(), "yyyymmdd") & "&indicators=MarketIndicator.$.Outstanding.VolumeQ+" & _
-     "MarketIndicator.$.Outstanding.VolumeT+MarketIndicator.$.Outstanding.VolumeH+" & _
-     "MarketIndicator.$.Outstanding.Volume1+MarketIndicator.$.Outstanding.Volume3+" & _
-     "MarketIndicator.$.Outstanding.Volume5+MarketIndicator.$.Executed.VolumeA&" & _
-     "stock=" & TICKER_STR & "&days=20"
-
-     SRC_URL_STR = "http://www.tradingphysics.com:42000/getchart?type=pi&" & _
-                   "date=" & Format(Now(), "yyyymmdd") & _
-                   "&indicators=MarketIndicator.$.Outstanding.PAge3+" & _
-                   "MarketIndicator.$.Outstanding.PAgeH+MarketIndicator.$.Executed.VolumeA&" & _
-                   "stock=" & TICKER_STR & "&days=1"
-     WIDTH_VAL = 350 * SCALE_VAL
-     HEIGHT_VAL = 360 * SCALE_VAL
-'-----------------------------------------------------------------------------------------
-Case 2 'Yahoo Finance 1-Day Range
+Case 1 'Yahoo Finance 1-Day Range
 '-----------------------------------------------------------------------------------------
      REF_URL_STR = "http://finance.yahoo.com/q/bc?s=" & _
                     TICKER_STR
@@ -302,7 +283,7 @@ Case 2 'Yahoo Finance 1-Day Range
      WIDTH_VAL = 638 * SCALE_VAL
      HEIGHT_VAL = 501 * SCALE_VAL
 '-----------------------------------------------------------------------------------------
-Case 3 'Yahoo Finance 1-Week Range
+Case 2 'Yahoo Finance 1-Week Range
 '-----------------------------------------------------------------------------------------
      REF_URL_STR = "http://finance.yahoo.com/q/bc?s=" & _
                     TICKER_STR
@@ -312,7 +293,7 @@ Case 3 'Yahoo Finance 1-Week Range
      WIDTH_VAL = 638 * SCALE_VAL
      HEIGHT_VAL = 501 * SCALE_VAL
 '-----------------------------------------------------------------------------------------
-Case 4 'Implied Volatility
+Case 3 'Implied Volatility
 '-----------------------------------------------------------------------------------------
      REF_URL_STR = "http://www.ivolatility.com/options.j?ticker=" & _
                     TICKER_STR
@@ -323,40 +304,9 @@ Case 4 'Implied Volatility
      
      WIDTH_VAL = 638 * SCALE_VAL
      HEIGHT_VAL = 501 * SCALE_VAL
+
 '-----------------------------------------------------------------------------------------
-Case 5 'Morningstar Custom: same as http://ogres-crypt.com/php/chart-mscf.php
-'You may be interested in this string which runs a script to gather and
-'display Morningstar charts - including P/E data:
-'-----------------------------------------------------------------------------------------
-'PB,PC,PE,PS,RG,OIG,EPSG,EQG,CFO,EPS,ROEG10,ROAG10,PROA,ROEA,TOTR,CR,DE,DTC
-'-----------------------------------------------------------------------------------------
-     TEMP_ARR = Split(TICKER_STR, ",", -1, vbBinaryCompare)
-     If IsArray(TEMP_ARR) = False Then: GoTo 1983
-     
-     i = LBound(TEMP_ARR)
-     j = UBound(TEMP_ARR)
-     
-     REF_URL_STR = _
-     "http://quote.morningstar.com/Quote/Quote.aspx?" & _
-     "pgid=hetopquote&ticker=" & TEMP_ARR(i)
-     
-     SRC_URL_STR = _
-     "http://tools.morningstar.com/charts/MStarCharts.aspx?" & _
-     "Security=" & TEMP_ARR(i) & _
-     "&bSize=460&Fundamental=" & TEMP_ARR(j) & _
-     "&Options=F&Stock=&FPrime=" & TEMP_ARR(i)
-     
-     'http://tools.morningstar.com/charts/MStarCharts.aspx?
-     'CountryId=USA&TimeFrame=Y1&ExchangeId=&LowIndicators=Volume&
-     'Log=&bSize=460&Events=&Options=F&Types=&MovingAvg=&Index=&
-     'Stock=&Totals=&DateFrom=&DateTo=&HPrime=&VPrime=&HostServer=
-     'quicktake.morningstar.com&FPrime=MMM&Security=MMM&Fundamental=DTC
-     
-     WIDTH_VAL = 350 * SCALE_VAL
-     HEIGHT_VAL = 360 * SCALE_VAL
-                 
-'-----------------------------------------------------------------------------------------
- Case 6 'Finviz daily technical chart
+ Case 4 'Finviz daily technical chart
 '-----------------------------------------------------------------------------------------
      
      REF_URL_STR = "http://elite.finviz.com/quote.ashx?t=" & _
@@ -369,7 +319,7 @@ Case 5 'Morningstar Custom: same as http://ogres-crypt.com/php/chart-mscf.php
      HEIGHT_VAL = 501 * SCALE_VAL
 
 '-----------------------------------------------------------------------------------------
- Case 7 'Finviz intraday basic
+ Case 5 'Finviz intraday basic
 '-----------------------------------------------------------------------------------------
      
      REF_URL_STR = "http://elite.finviz.com/chart.ashx?t=" & _
@@ -381,7 +331,7 @@ Case 5 'Morningstar Custom: same as http://ogres-crypt.com/php/chart-mscf.php
      WIDTH_VAL = 638 * SCALE_VAL
      HEIGHT_VAL = 501 * SCALE_VAL
 '-----------------------------------------------------------------------------------------
- Case 8 'Fred Historical Charts
+ Case 6 'Fred Historical Charts
 '-----------------------------------------------------------------------------------------
      REF_URL_STR = FRED_HISTORICAL_DATA_CHART_FUNC(TICKER_STR, 0)
      SRC_URL_STR = FRED_HISTORICAL_DATA_CHART_FUNC(TICKER_STR, 1)
@@ -390,7 +340,7 @@ Case 5 'Morningstar Custom: same as http://ogres-crypt.com/php/chart-mscf.php
      HEIGHT_VAL = 501 * SCALE_VAL
 
 '-----------------------------------------------------------------------------------------
-Case 9 'Draw X/Y Bar Chart using ADVFN
+Case 7 'Draw X/Y Bar Chart using ADVFN
 '-----------------------------------------------------------------------------------------
      REF_URL_STR = "http://www.advfn.com/"
      SRC_URL_STR = "http://www.advfn.com/p.php?pid=financialgraphs"

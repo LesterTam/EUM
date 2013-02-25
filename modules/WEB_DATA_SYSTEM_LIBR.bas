@@ -1,4 +1,3 @@
-Attribute VB_Name = "WEB_DATA_SYSTEM_LIBR"
 
 '-----------------------------------------------------------------------------------------------------------
 ' This module is based on the excellent work made by Randy Harmelink with his stock market functions add-in.
@@ -75,7 +74,6 @@ Optional ByVal FILE_NAME_STR As String = "")
 Dim DATA_STR As String
 Dim PARAM_RNG As Variant
 Dim RESULT_VAL As Variant
-
 Dim KEY_STR As String
 Const CASES_STR As String = ";N/A;N/A;N/A;N/A;N/A;N/A;N/A;N/A;N/A;N/A" 'Additional special cases to return immediately
 Dim TICKER1_STR As String
@@ -183,6 +181,7 @@ EVALUATE_LINE:
         RESULT_VAL = Evaluate(Replace(PARAM_RNG(2), PUB_WEB_DATA_ELEMENT_LOOK_STR, TICKER1_STR))
     Case Left(PARAM_RNG(2), 1) = "="
         RESULT_VAL = Evaluate(Replace(Mid(PARAM_RNG(2), 2), PUB_WEB_DATA_ELEMENT_LOOK_STR, TICKER1_STR))
+'        Debug.Print RESULT_VAL
     Case Else
         RESULT_VAL = ""
     End Select
@@ -215,7 +214,6 @@ ERROR_LABEL:
 RETRIEVE_WEB_DATA_ELEMENT_FUNC = ERROR_STR
 End Function
 
-
 'Extracts a specified table cell from a web page.
 
 Function RETRIEVE_WEB_DATA_CELL_FUNC(ByVal SRC_URL_STR As String, _
@@ -227,7 +225,8 @@ Optional ByVal FIND4_STR As String = " ", _
 Optional ByVal NROWS As Long = 0, _
 Optional ByVal END_SYNTAX As String = "</BODY", _
 Optional ByVal LOOK_VAL As Long = 0, _
-Optional ByVal ERROR_STR As String = "Error")
+Optional ByVal ERROR_STR As String = "Error", _
+Optional ByVal HTTP_TYPE As Integer = 0)
 '2011.04.27
 
 'This is similar to the RCHGetTableCell:
@@ -1228,7 +1227,7 @@ Optional ByVal CONV_FLAG As Boolean = False, _
 Optional ByVal ERROR_STR As Variant = "Error", _
 Optional ByVal HTTP_TYPE As Integer = 0, _
 Optional ByVal MAX_LEN As Integer = 32767) 'As Variant
-
+                        
 '2012.01.27
 'smfGetTagContent
 'Example of an invocation:
@@ -1760,6 +1759,37 @@ ERROR_LABEL:
 PARSE_WEB_DATA_TABLE_FUNC = Err.number
 End Function
 
+
+Function EXTRACT_WEB_DATA_STRING_FUNC(ByVal DATA_STR As String, _
+ByVal START_STR As String, _
+ByVal END_STR As String, _
+Optional ByVal LOOK_STR As String = "~") 'Same as smfStrExtr
+
+Dim i As Long
+Dim j As Long
+Dim k As Long
+
+On Error GoTo ERROR_LABEL
+
+If START_STR = LOOK_STR Then
+    i = 1
+    k = 2
+Else
+    i = InStr(DATA_STR, START_STR) + Len(START_STR)
+    k = i
+    If i = Len(START_STR) Then: GoTo ERROR_LABEL
+End If
+If END_STR = LOOK_STR Then j = Len(DATA_STR) + 1 Else j = InStr(k, DATA_STR, END_STR)
+If j = 0 Then: GoTo ERROR_LABEL
+
+EXTRACT_WEB_DATA_STRING_FUNC = Mid(DATA_STR, i, j - i)
+
+Exit Function
+ERROR_LABEL:
+EXTRACT_WEB_DATA_STRING_FUNC = ""
+End Function
+
+
 Function PARSE_WEB_DATA_PAGE_SYNTAX_FUNC(ByVal DATA_STR As String, _
 Optional ByVal VERSION As Integer = 0)
 '2011.04.27
@@ -1891,7 +1921,7 @@ LOAD_WEB_DATA_RECORDS_FUNC = False
 For i = 0 To PUB_WEB_DATA_FILES_VAL
 '-----------------------------------------------------------------------------
     SRC_URL_STR = PUB_WEB_DATA_FILES_PATH_STR & CStr(i) & ".txt"
-    Debug.Print SRC_URL_STR
+'    Debug.Print SRC_URL_STR
     DATA_STR = SAVE_WEB_DATA_PAGE_FUNC(SRC_URL_STR, 0, False, 0, False)
     If DATA_STR = PUB_WEB_DATA_SYSTEM_ERROR_STR Then: GoTo 1984
     DATA_ARR = Split(DATA_STR, Chr(10), -1, vbTextCompare)
@@ -1904,7 +1934,12 @@ For i = 0 To PUB_WEB_DATA_FILES_VAL
     For j = SROW To NROWS
         DATA_STR = DATA_ARR(j)
         If DATA_STR <> Chr(13) And Trim(DATA_STR) <> "" And DATA_STR <> "0" Then
-            TEMP_STR = Left(Trim(DATA_STR), 1)
+            DATA_STR = Trim(DATA_ARR(j))
+            DATA_STR = Replace(DATA_STR, Chr(13), "")
+            DATA_STR = Replace(DATA_STR, "smfGetTagContent", "PARSE_WEB_DATA_TAG_FUNC")
+            DATA_STR = Replace(DATA_STR, "RCHGetTableCell", "RETRIEVE_WEB_DATA_CELL_FUNC")
+            DATA_STR = Replace(DATA_STR, "smfStrExtr", "EXTRACT_WEB_DATA_STRING_FUNC")
+            TEMP_STR = Left(DATA_STR, 1)
             If TEMP_STR <> "'" Then
                k = InStr(1, DATA_STR, PUB_WEB_DATA_ELEMENT_DELIM_STR)
                TEMP_STR = Left(DATA_STR, k - 1)
@@ -2154,4 +2189,3 @@ Exit Function
 ERROR_LABEL:
 RNG_UPDATE_WEB_DATA_RECORDS_FUNC = False
 End Function
-
