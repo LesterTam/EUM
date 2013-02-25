@@ -1,3 +1,4 @@
+Attribute VB_Name = "WEB_DATA_SYSTEM_LIBR"
 
 '-----------------------------------------------------------------------------------------------------------
 ' This module is based on the excellent work made by Randy Harmelink with his stock market functions add-in.
