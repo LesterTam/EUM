@@ -237,7 +237,7 @@ Dim j As Long
 Dim NSIZE As Long
 Dim NROWS As Long
 
-Dim GRAD_VAL As Doubl
+Dim GRAD_VAL As Double
 Dim TEMP_ARR As Variant
 Dim TEMP_MATRIX As Variant
 
