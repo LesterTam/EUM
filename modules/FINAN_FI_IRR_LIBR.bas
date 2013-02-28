@@ -336,18 +336,41 @@ MIRR_FUNC = Err.number
 End Function
 
 
-'6
-'Solve f(x) = 0
-'http://www.gummy-stuff.org/IRR2.htm
-'http://www.gummy-stuff.org/loans.htm
-'http://www.gummy-stuff.org/NEWTON.htm
-'http://www.gummy-stuff.org/newton_explain.htm
-
 Function IRR_CHARACTERISTICS_SOLVER_FUNC(ByVal YFORMULA_STR As String, _
 ByVal YDFORMULA_STR As String, _
 Optional ByVal XGUESS_VAL As Double = 0.2, _
 Optional ByVal NBINS As Long = 20, _
 Optional ByVal OUTPUT As Integer = 1)
+
+'Suggested Readings:
+'http://www.gummy-stuff.org/misc-stuff.htm
+'http://www.gummy-stuff.org/petrovski.htm
+
+'http://www.gummy-stuff.org/xirr.htm
+'http://www.gummy-stuff.org/misc-stuff.htm
+'http://www.gummy-stuff.org/XIRR-stuff.htm
+
+'http://www.gummy-stuff.org/XIRR-bug.htm
+'http://www.gummy-stuff.org/multiple-returns.htm
+'http://www.gummy-stuff.org/NPV.htm
+
+'http://www.gummy-stuff.org/IRR.htm
+'http://www.gummy-stuff.org/IRR2.htm
+
+'http://www.gummy-stuff.org/Newton-Method.htm
+'http://www.gummy-stuff.org/loans.htm
+
+'http://www.gummy-stuff.org/average-gains.htm
+
+'http://www.gummy-stuff.org/MIRR.htm
+'http://ponzoblog.blogspot.ca/2010/06/mirr-eh.html
+'http://ponzoblog.blogspot.ca/2010/06/irr-and-mirr-revisited.html
+
+'http://www.gummy-stuff.org/newton_explain.htm
+'http://www.gummy-stuff.org/Rate-of-Return-2.htm
+'http://www.gummy-stuff.org/Rate-of-Return-3.htm
+'http://www.gummy-stuff.org/Rate-of-Return-4.htm
+
 
 Dim i As Long
 

@@ -5,7 +5,7 @@ Option Base 1       'The "Option Base" statement allows to specify 0 or 1 as the
                     'default first index of arrays.
 
 '''''''''''''''''''''''''''''''''''''''''''''''''''''
-' EDaysOfWeek
+' EDaysOfWeek by CPearson.com
 ' Days of the week to exclude. This is a bit-field
 ' enum, so that its values can be added or OR'd
 ' together to specify more than one day. E.g,.
@@ -56,8 +56,6 @@ End Enum
 'LIBRARY       : DATE
 'GROUP         : WORKDAY
 'ID            : 001
-'LAST UPDATE   : 01/09/2009
-'AUTHOR        : RAFAEL NICOLAS FERMIN COTA
 '**********************************************************************************
 '**********************************************************************************
 
