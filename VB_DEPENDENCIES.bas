@@ -7,6 +7,7 @@ Option Base 1       'The "Option Base" statement allows to specify 0 or 1 as the
                     'default first index of arrays.
 '-------------------------------------------------------------------------------------
 Public PUB_PROCEDURES_COLLECTION_OBJ As Collection
+Public PUB_FILES_PATH_STR As String = "\\vmware-host\Shared Folders\Desktop\XLS\2. GITHUB\IVEY\MODULES\"
 '-------------------------------------------------------------------------------------
 
 '-------------------------------------------------------------------------------------
@@ -243,8 +244,7 @@ PROCEDURES_LISTING_ALL_FUNC = False
 End Function
 
 
-Function PROCEDURES_IMPORTING_ALL_FUNC( _
-Optional ByVal FILES_PATH_STR As String = "\\vmware-host\Shared Folders\Desktop\XLS\2. GITHUB\IVEY\MODULES\")
+Sub PROCEDURES_IMPORTING_ALL_FUNC()
 
 Dim FSO_OBJ As Object
 Dim FILES_OBJ As Object
@@ -253,26 +253,19 @@ Dim FOLDER_OBJ As Object
 On Error GoTo ERROR_LABEL
 
 Set FSO_OBJ = CreateObject("Scripting.FileSystemObject")
-Set FOLDER_OBJ = FSO_OBJ.GetFolder(FILES_PATH_STR)
+Set FOLDER_OBJ = FSO_OBJ.GetFolder(PUB_FILES_PATH_STR)
 
 'Application.ScreenUpdating = False
 For Each FILES_OBJ In FOLDER_OBJ.Files
     If Right(FILES_OBJ.name, 3) = "cls" Or Right(FILES_OBJ.name, 3) = "bas" Or Right(FILES_OBJ.name, 3) = "frm" Then
-        Application.VBE.ActiveVBProject.VBComponents.Import (FILES_PATH_STR & FILES_OBJ.name)
+        Application.VBE.ActiveVBProject.VBComponents.Import (PUB_FILES_PATH_STR & FILES_OBJ.name)
     End If
 Next FILES_OBJ
 'Application.ScreenUpdating = True
 
-PROCEDURES_IMPORTING_ALL_FUNC = True
+End Sub
 
-Exit Function
-ERROR_LABEL:
-PROCEDURES_IMPORTING_ALL_FUNC = False
-End Function
-
-
-Function PROCEDURES_EXPORTING_ALL_FUNC(Optional ByVal FILES_PATH_STR As String _
-= "\\vmware-host\Shared Folders\Desktop\XLS\2. GITHUB\IVEY\MODULES\")
+Sub PROCEDURES_EXPORTING_ALL_FUNC()
 
 Dim VB_PROJ_OBJ As VBProject
 Dim VB_COMP_OBJ As VBComponent
@@ -283,22 +276,17 @@ Set VB_PROJ_OBJ = Application.VBE.ActiveVBProject
  
 For Each VB_COMP_OBJ In VB_PROJ_OBJ.VBComponents
     If VB_COMP_OBJ.Type = vbext_ct_StdModule Then
-        VB_COMP_OBJ.EXPORT FILES_PATH_STR & VB_COMP_OBJ.name & ".bas"
+        VB_COMP_OBJ.EXPORT PUB_FILES_PATH_STR & VB_COMP_OBJ.name & ".bas"
     ElseIf VB_COMP_OBJ.Type = vbext_ct_ClassModule Then
-        VB_COMP_OBJ.EXPORT FILES_PATH_STR & VB_COMP_OBJ.name & ".cls"
+        VB_COMP_OBJ.EXPORT PUB_FILES_PATH_STR & VB_COMP_OBJ.name & ".cls"
     ElseIf VB_COMP_OBJ.Type = vbext_ct_MSForm Then
-        VB_COMP_OBJ.EXPORT FILES_PATH_STR & VB_COMP_OBJ.name & ".frm"
+        VB_COMP_OBJ.EXPORT PUB_FILES_PATH_STR & VB_COMP_OBJ.name & ".frm"
     Else
         'Debug.Print VB_COMP_OBJ.name
     End If
 Next
 
-PROCEDURES_EXPORTING_ALL_FUNC = True
-
-Exit Function
-ERROR_LABEL:
-PROCEDURES_EXPORTING_ALL_FUNC = False
-End Function
+End Sub
 
 
 

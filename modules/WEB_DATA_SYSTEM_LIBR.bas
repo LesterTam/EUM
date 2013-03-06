@@ -684,7 +684,7 @@ Select Case HTTP_TYPE
 '---------------------------------------------------------------------------------
 Case 0, 1 'XMLHTTP Get/Post Object
 '---------------------------------------------------------------------------------
-    Dim HTTP_OBJ As New XMLHTTP
+    Dim HTTP_OBJ As New MSXML2.XMLHTTP60
     If HTTP_TYPE = 0 Then 'Get
         HTTP_OBJ.Open "GET", SRC_URL_STR, False
 'DoEvents
