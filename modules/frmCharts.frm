@@ -57,8 +57,6 @@ frmCharts.Preset.AddItem "Finviz daily technical chart"
 frmCharts.Preset.AddItem "Finviz intraday basic"
 frmCharts.Preset.AddItem "Fred Historical Charts"
 
-frmCharts.Preset.value = "Trading Physics Generic Real Time Chart"
-
 frmCharts.ScrollBar1.SetFocus
 frmCharts.ScrollBar1.value = 1
 Call ScrollBar1_Change
