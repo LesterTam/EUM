@@ -1,5 +1,6 @@
 Attribute VB_Name = "FINAN_ASSET_MOMENTS_VOLAT_LIBR"
 
+
 Option Explicit     'Requires that all variables to be declared explicitly.
 Option Base 1       'The "Option Base" statement allows to specify 0 or 1 as the
                     'default first index of arrays.
@@ -128,7 +129,7 @@ VOLAT_LINE:
 Return
 '----------------------------------------------------------------------------------------------------------
 ERROR_LABEL:
-ASSETS_HISTORICAL_VOLATILITY_FUNC = Err.number
+ASSETS_HISTORICAL_VOLATILITY_FUNC = Err.Number
 End Function
 
 Function ASSET_CONDITIONAL_VOLATILITY_FUNC(ByRef DATES_RNG As Variant, _
@@ -163,8 +164,8 @@ If NROWS <> UBound(DATA_VECTOR, 1) Then: GoTo ERROR_LABEL
 
 ReDim TEMP_MATRIX(0 To NROWS, 1 To 4)
 TEMP_MATRIX(0, 1) = "DATE"
-TEMP_MATRIX(0, 2) = "DATA" 'St¥/$
-TEMP_MATRIX(0, 3) = "LOG-RETURN" 'Ln[s1(¥/$)/s0(¥/$)]
+TEMP_MATRIX(0, 2) = "DATA" 'St´/$
+TEMP_MATRIX(0, 3) = "LOG-RETURN" 'Ln[s1(´/$)/s0(´/$)]
 TEMP_MATRIX(0, 4) = "CHV" 'Conditional Historical Volatility
 
 i = 1
@@ -190,7 +191,7 @@ ASSET_CONDITIONAL_VOLATILITY_FUNC = TEMP_MATRIX
 
 Exit Function
 ERROR_LABEL:
-ASSET_CONDITIONAL_VOLATILITY_FUNC = Err.number
+ASSET_CONDITIONAL_VOLATILITY_FUNC = Err.Number
 End Function
 
 
@@ -249,7 +250,7 @@ ASSET_EXTREME_VOLATILITY_FUNC = TEMP_MATRIX
 
 Exit Function
 ERROR_LABEL:
-ASSET_EXTREME_VOLATILITY_FUNC = Err.number
+ASSET_EXTREME_VOLATILITY_FUNC = Err.Number
 End Function
 
 
@@ -383,7 +384,7 @@ MODE_LINE:
 Return
 '--------------------------------------------------------------------------
 ERROR_LABEL:
-ASSET_SRRI_FUNC = Err.number
+ASSET_SRRI_FUNC = Err.Number
 End Function
 
 
@@ -537,7 +538,7 @@ End Select
 
 Exit Function
 ERROR_LABEL:
-ASSET_DOWNSIDE_VOLATILITY_FUNC = Err.number
+ASSET_DOWNSIDE_VOLATILITY_FUNC = Err.Number
 End Function
 
 'Sortino Ratios ... and Sharpe
@@ -792,5 +793,133 @@ ASSET_SORTINO_SHARPE_FUNC = TEMP_MATRIX
 
 Exit Function
 ERROR_LABEL:
-ASSET_SORTINO_SHARPE_FUNC = Err.number
+ASSET_SORTINO_SHARPE_FUNC = Err.Number
+End Function
+
+
+'-----------------------------------------------------------------------------------------------------------
+'Moving Return, Volatility and CAGR
+'Reference: http://www.gummy-stuff.org/moving-CAGR.htm
+'-----------------------------------------------------------------------------------------------------------
+
+'Here is an interesting notion. You take a gander at stock prices over, say, the last 10 years.
+'You notice that they went from P0 (10 years ago) to P1 (today). If the Compound Annual Growth Rate
+'is CAGR, then that means: CAGR = (P1 / P0) ^ (1/10) -1
+'That 's because: P0 (1 + CAGR)^ 10 = P1.
+
+'But suppose you'd like to see how that CAGR has changed over the years.
+'In fact, let's look at 3-year periods, where the stock price went from P0 to P1 over those 3 years.
+'Then the CAGR would be: (P1 / P0) ^ (1/3) -1
+
+'The following function downloads N years worth of data
+'Stare in awe at the variation in the CAGR (calculated over a moving N-months period (36 = 3 years).
+
+'The volatility (e.g., Standard Deviation) is based upon N years worth of monthly returns, multiplied by
+'SQRT(12) to annualize. (See square root stuff.)
+
+'Pay attention to the Volatility, it may go in a direction opposite to the CAGR (Check the Correlation)
+'Since "Volatility" is a measure of stock return deviations from their average return, we might expect that
+'unusually large deviations (either up or down) would result in a large Standard Deviation (or Volatility).
+
+'Example, during times when the returns didn't stray much from their 3-year (36 months) average, the
+'volatility may NOT vary a great deal. But when the returns starts to drop like a rock, deviations wil
+'skyrock and volatility will from about X% to over X++++++%.
+
+'-----------------------------------------------------------------------------------------------------------
+
+Function ASSET_MOVING_RETURN_VOLATILITY_CAGR_FUNC(ByVal TICKER_STR As Variant, _
+Optional ByVal START_DATE As Date, _
+Optional ByVal END_DATE As Date, _
+Optional ByVal NO_MONTHS As Long = 36)
+
+Dim i As Long
+Dim j As Long
+Dim k As Long
+Dim l As Long
+Dim m As Long
+
+Dim NROWS As Long
+Dim NCOLUMNS As Long
+
+Dim MEAN_SUM As Double
+Dim STDEVP_SUM As Double
+
+Dim TEMP2_SUM As Double
+
+Dim HEADINGS_STR As String
+
+Dim DATA_MATRIX As Variant
+Dim TEMP_MATRIX As Variant
+
+On Error GoTo ERROR_LABEL
+
+If IsArray(TICKER_STR) = False Then
+    DATA_MATRIX = YAHOO_HISTORICAL_DATA_SERIE_FUNC(TICKER_STR, START_DATE, END_DATE, "MONTHLY", "DOHLCVA", False, True, True)
+Else
+    DATA_MATRIX = TICKER_STR
+End If
+NROWS = UBound(DATA_MATRIX, 1)
+
+ReDim TEMP_MATRIX(0 To NROWS, 1 To 11)
+
+'-----------------------------------------------------------------------------------------------------
+HEADINGS_STR = "DATE,OPEN,HIGH,LOW,CLOSE,VOLUME,ADJ.CLOSE,RETURN,MEAN*,VOLATILITY*,CAGR,"
+j = Len(HEADINGS_STR)
+NCOLUMNS = 0
+For i = 1 To j
+    If Mid(HEADINGS_STR, i, 1) = "," Then: NCOLUMNS = NCOLUMNS + 1
+Next i
+ReDim TEMP_MATRIX(0 To NROWS, 1 To NCOLUMNS)
+i = 1
+For k = 1 To NCOLUMNS
+    j = InStr(i, HEADINGS_STR, ",")
+    TEMP_MATRIX(0, k) = Mid(HEADINGS_STR, i, j - i)
+    i = j + 1
+Next k
+'-----------------------------------------------------------------------------------------------------
+
+l = NO_MONTHS + 1: m = (NO_MONTHS / 12)
+i = 1
+For j = 1 To 7: TEMP_MATRIX(i, j) = DATA_MATRIX(i, j): Next j
+TEMP_MATRIX(i, 6) = TEMP_MATRIX(i, 6) / 1000
+TEMP_MATRIX(i, 8) = TEMP_MATRIX(i, 5) / TEMP_MATRIX(i, 2) - 1
+MEAN_SUM = TEMP_MATRIX(i, 8)
+STDEVP_SUM = MEAN_SUM * MEAN_SUM
+
+TEMP_MATRIX(i, 9) = "": TEMP_MATRIX(i, 10) = "": TEMP_MATRIX(i, 11) = ""
+For i = 2 To NROWS
+    For j = 1 To 7: TEMP_MATRIX(i, j) = DATA_MATRIX(i, j): Next j
+    TEMP_MATRIX(i, 6) = TEMP_MATRIX(i, 6) / 1000
+    TEMP_MATRIX(i, 8) = TEMP_MATRIX(i, 7) / TEMP_MATRIX(i - 1, 7) - 1
+    MEAN_SUM = MEAN_SUM + TEMP_MATRIX(i, 8)
+    STDEVP_SUM = STDEVP_SUM + TEMP_MATRIX(i, 8) * TEMP_MATRIX(i, 8)
+    If i <= l Then
+        TEMP_MATRIX(i, 9) = MEAN_SUM / i
+        'Some people asked if variance could actually be calculated in a single pass.
+        'Yes, see the links below for one pass algorithms:
+        'http://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
+        TEMP_MATRIX(i, 10) = ((STDEVP_SUM - ((MEAN_SUM * MEAN_SUM) / l)) / l) ^ 0.5 '(l-1)
+        k = 1
+    Else
+        MEAN_SUM = MEAN_SUM - TEMP_MATRIX(i - l, 8)
+        STDEVP_SUM = STDEVP_SUM - TEMP_MATRIX(i - l, 8) * TEMP_MATRIX(i - l, 8)
+        TEMP_MATRIX(i, 9) = MEAN_SUM / l
+        TEMP_MATRIX(i, 10) = ((STDEVP_SUM - ((MEAN_SUM * MEAN_SUM) / l)) / l) ^ 0.5 '(l-1)
+        k = k + 1
+    End If
+    TEMP_MATRIX(i, 11) = (TEMP_MATRIX(i, 7) / TEMP_MATRIX(k, 7)) ^ (1 / m) - 1
+ '   TEMP2_SUM = 0
+  '  For j = i To k Step -1
+   '     TEMP2_SUM = TEMP2_SUM + (TEMP_MATRIX(j, 8) - TEMP_MATRIX(i, 9)) ^ 2
+    'Next j
+'    TEMP_MATRIX(i, 10) = 12 ^ 0.5 * (TEMP2_SUM / (i - k + 1)) ^ 0.5
+    TEMP_MATRIX(i, 9) = TEMP_MATRIX(i, 9) * 12
+    TEMP_MATRIX(i, 10) = 12 ^ 0.5 * TEMP_MATRIX(i, 10)
+Next i
+
+ASSET_MOVING_RETURN_VOLATILITY_CAGR_FUNC = TEMP_MATRIX
+
+Exit Function
+ERROR_LABEL:
+ASSET_MOVING_RETURN_VOLATILITY_CAGR_FUNC = Err.Number
 End Function

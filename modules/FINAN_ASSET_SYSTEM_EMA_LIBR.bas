@@ -210,11 +210,27 @@ ERROR_LABEL:
 ASSET_SINGLE_EMA_SIGNAL_FUNC = "--"
 End Function
 
-
-'Scroll thrugh past stock prices and see how two moving
-'averages behave, whether their intersections mean something, whether
-'crossing from above or below signifies buy and/or sell signals...
+'--------------------------------------------------------------------------------------------------------------------------------------------------
+'Scroll thrugh past stock prices and see how two moving averages behave, whether their intersections mean something, whether
+'crossing from above or below signifies buy and/or sell signals:
+'--------------------------------------------------------------------------------------------------------------------------------------------------
 'EMA(i+1) = a * EMA(i) + (1-a)*P(i+1)
+'--------------------------------------------------------------------------------------------------------------------------------------------------
+'First the basics:
+'--------------------------------------------------------------------------------------------------------------------------------------------------
+'http://www.gummy-stuff.org/moving-CAGR.htm
+'http://www.gummy-stuff.org/MA.htm
+
+'http://www.gummy-stuff.org/VMA.htm
+'http://www.gummy-stuff.org/EMA.htm
+'http://www.gummy-stuff.org/ema-formula.htm
+
+'http://www.gummy-stuff.org/Bollinger.htm#VMA
+'http://www.gummy-stuff.org/Bollinger.htm#EMA
+
+'In class you will learn how to replicate this function directly from Excel:
+'http://www.gummy-stuff.org/Excel/moving-average.xls
+'--------------------------------------------------------------------------------------------------------------------------------------------------
 
 Function ASSET_MA_EMA_VMA_SIGNAL_FUNC(ByRef TICKER_STR As Variant, _
 Optional ByVal START_DATE As Date, _
@@ -437,7 +453,7 @@ Case Else
     Next i
     SIGMA_VAL = (SIGMA_VAL / (NROWS - 1)) ^ 0.5
     If OUTPUT = 1 Then
-        ASSET_MA_EMA_VMA_SIGNAL_FUNC = MEAN_VAL / SIGMA_VAL
+        ASSET_MA_EMA_VMA_SIGNAL_FUNC = MEAN_VAL / SIGMA_VAL 'Objective function to MAXIMIZE!!!!
     Else
         ASSET_MA_EMA_VMA_SIGNAL_FUNC = Array(MEAN_VAL / SIGMA_VAL, MEAN_VAL, SIGMA_VAL)
     End If
