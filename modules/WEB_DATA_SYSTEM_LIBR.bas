@@ -1,54 +1,154 @@
 Attribute VB_Name = "WEB_DATA_SYSTEM_LIBR"
 
 '-----------------------------------------------------------------------------------------------------------
-' This module is based on the excellent work made by Randy Harmelink with his stock market functions add-in.
-' finance.groups.yahoo.com/group/smf_addin//. I added the Hash functions to speed up the look up and avoid
-' re-running the parsing algorithms.
 '-----------------------------------------------------------------------------------------------------------
 Option Explicit     'Requires that all variables to be declared explicitly.
 Option Base 1       'The "Option Base" statement allows to specify 0 or 1 as the
                     'default first index of arrays.
 '-----------------------------------------------------------------------------------------------------------
 '-----------------------------------------------------------------------------------------------------------
-' User defined function to retrieve individual data elements from various web sites
-'-----------------------------------------------------------------------------------------------------------
 Private PUB_WEB_DATA_ELEMENTS_HASH As clsTypeHash
+'This hash table is used to store the company stock symbol and the index of financial data as one element.
+'It is used in RETRIEVE_WEB_DATA_ELEMENT_FUNC to check if the requested financial data of the associated
+'company already existed. If so, return the existing element; otherwise, proceed on collecting data based
+'on the ticker symbol.
+
 Public PUB_WEB_DATA_PAGES_HASH As clsTypeHash
+'The advantage of using this hash table over the array is speed. You don't need to loop through all the URLs
+'to find the web page that you want.
+
 Private PUB_WEB_DATA_RECORDS_HASH As clsTypeHash
+'The advantage to using this hash is the increase in speed. If this hash table was not used, for each ticker
+'it would need to go through each element. Being able to have this in a hash table drastically increases its
+'speed. The .exists method is used to find whether or not that key can be found in the hash table so that a
+'new element can be created using that key.
+
 '-----------------------------------------------------------------------------------------------------------
 Public PUB_WEB_DATA_TABLES_FLAG As Boolean
+'The Boolean variable PUB_WEB_DATA_TABLES_FLAG is used in order to determine if the hash tables have already
+'been instantiated or not. If the variable is set to false, they have not been created and START_WEB_DATA_SYSTEM_FUNC
+'is called in order to do so. The PUB_WEB_DATA_TABLES_FLAG is set to True when this function is called in order
+'to indicate that they have been created.
 '-----------------------------------------------------------------------------------------------------------
-'(1 To PUB_WEB_DATA_RECORDS_VAL)
-'-----------------------------------------------------------------------------------------------------------
-Private Const PUB_WEB_DATA_FILES_VAL As Long = 9
-' Number of external files with element definitions
-Private Const PUB_WEB_DATA_RECORDS_VAL As Long = 20000
-' Extraction parameters for each element
-Private Const PUB_WEB_DATA_ELEMENTS_VAL As Long = 100000
-' Number of data elements
-Private Const PUB_WEB_DATA_PAGES_VAL As Long = 30000
-' Number of data pages to save
+Private Const PUB_WEB_DATA_FILES_VAL As Long = 9 ' Number of external files with element definitions
+'The constant PUB_WEB_DATA_FILES_VAL is set equal to 9 because there are 9 different text files being used. The
+'files are saved in such a way that the file path is easy to create by simply looping to change the number at
+'the end of the string from 1 to 9. The files and their descriptions are located below:
+
+'smf-elements-0.txt = Calculated data elements
+'smf-elements-1.txt = MSN data elements
+'smf-elements-2.txt = Yahoo data elements
+'smf-elements-3.txt = Google data elements
+'smf-elements-4.txt = Morningstar data elements
+'smf-elements-5.txt = Reuters data elements
+'smf-elements-6.txt = Zacks data elements
+'smf-elements-7.txt = AdvFN data elements
+'smf-elements-8.txt = Earnings.com data elements
+'smf-elements-9.txt = Other misc data elements
+
+Private Const PUB_WEB_DATA_RECORDS_VAL As Long = 20000 ' Extraction parameters for each element
+'The limit for this is 20,000 since anything over that wouldn't exist. There are only around 12,000 unique elements
+'with numbers ranging from 1 to 17,006. The reason for such a large number is there are so many combinations of
+'source/URL and data to be required. Say there were 43 sources. That would mean for each source/URL, there would be
+'an average of 20,000/43 = 463 elements per source.
+
+Private Const PUB_WEB_DATA_ELEMENTS_VAL As Long = 100000 ' Number of data elements
+'There is a maximum of 20,000 entries in PUB_WEB_DATA_RECORDS_VAL; for every company the user trying to analyze,
+'there will be a distinct 20,000 entries for web-data-element. With a maximum of 100,000, it is assumed to be never
+'reached, since it is very unlikely that user will make more than 100000 requests of different pieces of data
+'during one session.
+
+Private Const PUB_WEB_DATA_PAGES_VAL As Long = 30000 ' Number of data pages to save
+'The PUB_WEB_DATA_PAGES_VAL is used to defined the row size of the PUB_WEB_DATA_PAGES_MATRIX. PUB_WEB_DATA_PAGES_MATRIX
+'is used in the function SAVE_WEB_DATA_PAGE_FUNC to store URLs where the user/other functions try to retrieve data
+'from. The SAVE_WEB_DATA_PAGE_FUNC function is called by functions to retrieve web-data-elements, web-data-cells,
+'web-data-tables, and web-data-pages. We know there are maximum of 20,000 web-data-elements and 10 web-data-pages.
+'Web-data-cells and web-data-tables are called less frequently as they are only used for analysis purposes.
+
+'Also, some of the sources where the user/other function retrieve web-data-cells and web-data-tables will be the same as
+'the web-data-elements. Therefore, a good estimation of the number of different URLs for retrieving web-data-cells and
+'web-data-tables is 10,000 which result the PUB_WEB_DATA_PAGES_VAL with a maximum of 30,000.
+
 Private PUB_WEB_DATA_PAGES_OBJ As Collection
 'Private PUB_WEB_DATA_PAGES_INDEX_VAL As Long
 'Private PUB_WEB_DATA_PAGES_URL_ARR(1 To PUB_WEB_DATA_PAGES_VAL) As String
 'Private PUB_WEB_DATA_PAGES_ARR(1 To PUB_WEB_DATA_PAGES_VAL) As String
-Private PUB_WEB_DATA_PAGES_MATRIX(1 To PUB_WEB_DATA_PAGES_VAL, 1 To 2) As String
-' Saved web page data (2) and its ticker-source (1)
+Private PUB_WEB_DATA_PAGES_MATRIX(1 To PUB_WEB_DATA_PAGES_VAL, 1 To 2) As String ' Saved web page data (2) and its ticker-source (1)
+'From a general perspective, the loop in Case 0 @ SAVE_WEB_DATA_PAGE_FUNC should be much slower than Case Else. This stems from the fact
+'that the loop in Case 0 loops through an array and at the first empty position tries to download the web page. If the web page has been
+'previously loaded, the array would contain HTTP_TYPE & ":" & SRC_URL_STR in the first column. Case Else uses the same key string as the
+'key for a collection. If the collection doesn't contain the key, it downloads the web page and adds it to the collection.
+
+'Through testing, the array took 745 milliseconds, while the collection took 637 milliseconds. These numbers will be substantially
+'different the more web pages that are loaded.
+
 '-----------------------------------------------------------------------------------------------------------
 Private Const PUB_ADVFN_SERVER_STR As String = "ca"
 Private Const PUB_ADVFN_URL_STR As String = ".advfn.com/p.php?pid=financials"
 '-----------------------------------------------------------------------------------------------------------
 Private Const PUB_WEB_DATA_VERSION_STR As String = "2.25.2013" 'Version number of add-in
-Private Const PUB_WEB_DATA_FILES_PATH_STR As String = "https://raw.github.com/rnfermincota/BGCVI/master/ADD-IN/smf-elements/smf-elements-"
+Private Const PUB_WEB_DATA_FILES_PATH_STR As String = "https://raw.github.com/rnfermincota/BGCVI/master/WDS/smf-elements/smf-elements-"
 '"C:\Documents and Settings\HOME\Application Data\Microsoft\AddIns\smf-elements-"
+
+'Using this web address allows for a centralized source of data elements. When using multiple instances of this library, all functions can
+'load the same elements. The centralized nature of the text files allows for standardization and easy program maintenance.
+
 Private Const PUB_WEB_DATA_ELEMENT_LOOK_STR As String = "~~~~~"
+'PUB_WEB_DATA_ELEMENT_LOOK_STR acts as a placeholder for a ticker symbol. On line SRC_URL_STR = Replace(PARAM_RNG(2),
+'PUB_WEB_DATA_ELEMENT_LOOK_STR, TICKER2_STR) @ RETRIEVE_WEB_DATA_ELEMENT_FUNC the placeholder is being replaced with the actual
+'ticker symbol.
+
 Private Const PUB_WEB_DATA_ELEMENT_DELIM_STR As String = ";"
+'The delimiter character is what separates all of the fields for the elements. For the elements, they are organized as:
+'#;source;element;url;cells;find1;find2;find3;find4;rows;end;look;type
+
+'Specifically, on line PARAM_RNG = Split(PARAM_RNG & CASES_STR, PUB_WEB_DATA_ELEMENT_DELIM_STR) @ RETRIEVE_WEB_DATA_ELEMENT_FUNC , each
+'string is split by the delimiter character to separate each field of the element. The fields are then stored in PARA_RNG which is
+'used further in data segmentation of each record.
+
 '-----------------------------------------------------------------------------------------------------------
 Public Const PUB_WEB_DATA_SYSTEM_ERROR_STR As String = "Error" ' Value to return if error
+'The global error label allows for a standardized error message. The reason for the standardized error message is in the
+'SAVE_WEB_DATA_PAGE_FUNC. If the function encounters an error saving the web page, it will return an error. That way, you can
+'check anywhere else in the library if the SAVE_WEB_DATA_PAGE_FUNC had an error (since it is standardized), and handle it
+'accordingly.
+
 '-----------------------------------------------------------------------------------------------------------
 
-
 'Returns a specific data element from a specified data source (i.e. web page).
+
+'This function returns a specific element from the data source. It uses the Ticker of the company (TICKER0_STR) and
+'the number specifying the element of data to be retrieved (ELEMENT_VAL) as 2 main inputs. The third input is the error string.
+
+'After declaring all supplementary variables the function checks if the web library has been initialized. If it hasn't it
+'calls START_WEB_DATA_SYSTEM_FUNC to initialize the library. The function checks if ELEMENT_VAL a valid record number; if not,
+'exit the function with an error.
+
+'Then the function checks whether the data element to be retrieved exists in the hash table and returns it if it does. Otherwise
+'it returns the N/A value. The function then gets the value from the hash table given the element value key. It then concatenates
+'that with a placeholder string and splits that into an array.
+
+'The function then goes to EVALUATE_LINE. The EVALUATE_LINE block checks for the element of data which is being retrieved using
+'Select Case. If it is none of the defined cases, the RESULT_VAL is left empty.
+
+'Then it checks whether the webpage has already been retrieved. If it hasn't it saves the data and adds the directory to the hash table.
+
+'Given nothing is stored in RESULT_VAL after EVALUATE_LINE, go to label 1983. The function then proceeds on checking if an error
+'occurred; if not, then a new element is found and is then stored in the PUB_WEB_DATA_ELEMENTS_HASH hash table.
+
+'The function checks if the webpage has already been retrieved. If so, it will replace the third element of PARAM_RANGE with the
+'existing web page.
+
+'If the first element of PARAM_RANGE is not "Calculated" and the hash table doesn't contain the URL, the function downloads the
+'HTML. If there was an error retrieving the HTML, the function will output an error. Next, the function makes a specific exception
+'for Yahoo Finance and takes out some potentially malicious strings. Finally, the URL along with the source HTML are added to the hash.
+
+'The PARSE_LINE block checks whether the PARAM_RNG contains "?" and assigns the parsed value from the hash table to the RESULT_VAL. If
+'the PARAM_RNG contains "Obsolete" substring, then the PARAM_RNG(2) is assigned to the RESULT_VAL.
+
+'In any other case the RESULT_VAL is set to be the parsed value of the directory from the hash table.
+
+'It then adds the KEY_STR and RESULT_VAL to the hash table.
 
 Function RETRIEVE_WEB_DATA_ELEMENT_FUNC(ByVal TICKER0_STR As String, _
 Optional ByVal ELEMENT_VAL As Long = 1, _
@@ -396,8 +496,8 @@ If AROWS = 0 Or ACOLUMNS = 0 Then
     If AROWS = 0 Then NROWS = 10   ' Old default
     If ACOLUMNS = 0 Then NCOLUMNS = 10   ' Old default
     On Error Resume Next
-    NROWS = Excel.Application.Caller.Rows.COUNT
-    NCOLUMNS = Excel.Application.Caller.Columns.COUNT
+    NROWS = Excel.Application.Caller.Rows.Count
+    NCOLUMNS = Excel.Application.Caller.Columns.Count
     On Error GoTo ERROR_LABEL
 End If
 KEY_STR = SRC_URL_STR & "|" & FIND_BEGIN_STR & "|" & BEGIN_DIRECTION_VAL & "|" & FIND_END_STR & "|" & END_DIRECTION_VAL & "|" & ROW_ONLY_FLAG & "|" & NROWS & "|" & NCOLUMNS
@@ -426,7 +526,7 @@ RETRIEVE_WEB_DATA_TABLE_FUNC = CONVERT_STRING_NUMBER_FUNC(TEMP_MATRIX)
 Exit Function
 '--------------------------------------------------------------------------------
 ERROR_LABEL:
-RETRIEVE_WEB_DATA_TABLE_FUNC = Err.number
+RETRIEVE_WEB_DATA_TABLE_FUNC = Err.Number
 '--------------------------------------------------------------------------------
 End Function
 '--------------------------------------------------------------------------------
@@ -507,8 +607,8 @@ If AROWS = 0 Or ACOLUMNS = 0 Then
     If AROWS = 0 Then NROWS = 10   ' Old default
     If ACOLUMNS = 0 Then NCOLUMNS = 10   ' Old default
     On Error Resume Next
-    NROWS = Excel.Application.Caller.Rows.COUNT
-    NCOLUMNS = Excel.Application.Caller.Columns.COUNT
+    NROWS = Excel.Application.Caller.Rows.Count
+    NCOLUMNS = Excel.Application.Caller.Columns.Count
     On Error GoTo ERROR_LABEL
 End If
 DATA_STR = SAVE_WEB_DATA_PAGE_FUNC(SRC_URL_STR, HTTP_TYPE, True, 0, False)
@@ -516,7 +616,7 @@ RETRIEVE_WEB_DATA_PAGE_FUNC = PARSE_WEB_DATA_TABLE_FUNC(DATA_STR, FIND1_STR, DIR
 
 Exit Function
 ERROR_LABEL:
-RETRIEVE_WEB_DATA_PAGE_FUNC = Err.number
+RETRIEVE_WEB_DATA_PAGE_FUNC = Err.Number
 End Function
 
 
@@ -547,7 +647,24 @@ On Error GoTo ERROR_LABEL
 '------------------------------------------------------------------------------------
 Select Case HASH_TYPE
 '------------------------------------------------------------------------------------
-Case 0 'Array
+Case 0 'The DATA_STR variable is created as the returning variable of the function.
+'The function first checks whether the storage method used for webpage data is array
+'or collection. If an array is used, the function will proceed on looping through
+'existing records by checking the URL. The associated source code will be stored in
+'DATA_STR if the record already exists; otherwise, the source code will be retrieved
+'through the CALL_WEB_DATA_PAGE_FUNC function with the option of cleaning the source
+'code. A new record will then be created with the URL as the first element and the
+'source code as the second. The source code will also be stored in DATA_STR. If the
+'URL cannot be found within existing records and the array is full, return an error.
+'Right after an existing record is found or an empty slot is filled, exit the for loop.
+
+'If the collection method is used, a key string is then created with the HTTP_TYPE and
+'the URL of the required webpage. Similarly, the source code is stored in DATA_STR if
+'there is an existing record associated with the URL; otherwise, the source code will
+'be retrieved through the CALL_WEB_DATA_PAGE_FUNC function with the option of cleaning
+'the source code. A new record will be created with the URL and the type of the webpage
+'being the key and the source code being the item. The source code is then stored in the
+'DATA_STR.
 '------------------------------------------------------------------------------------
     For i = 1 To PUB_WEB_DATA_PAGES_VAL
         Select Case True
@@ -587,7 +704,7 @@ Case Else 'Collection
     On Error Resume Next
     KEY_STR = HTTP_TYPE & ":" & SRC_URL_STR
     DATA_STR = PUB_WEB_DATA_PAGES_OBJ.Item(KEY_STR)
-    If Err.number <> 0 Then
+    If Err.Number <> 0 Then
         Err.Clear
         DATA_STR = CALL_WEB_DATA_PAGE_FUNC(SRC_URL_STR, HTTP_TYPE)
         If CLEAN_FLAG = True Then: GoSub CLEAN_LINE
@@ -596,13 +713,23 @@ Case Else 'Collection
 '------------------------------------------------------------------------------------
 End Select
 '------------------------------------------------------------------------------------
-If TRIM_FLAG = True Then: GoSub TRIM_LINE
+If TRIM_FLAG = True Then: GoSub TRIM_LINE 'If the TRIM_FLAG is true, a portion of the
+'DATA_STR will be extracted and stored back in DATA_STR. The extracted portion start
+'at the j th character and ends on the k th character of the string. If POS_VAL is
+'numeric, then it is the starting position of the extraction; otherwise, the location
+'is calculated by locating the position of POS_VAL in DATA_STR and add the optional
+'OFFSET_VAL. If the starting position plus LEN_VAL is less than the length of DATA_STR,
+'then the length of extraction is LEN_VAL; otherwise, the ending position of the
+'extraction is the end of DATA_STR.
+
 SAVE_WEB_DATA_PAGE_FUNC = DATA_STR
 
 '------------------------------------------------------------------------------------
 Exit Function
 '------------------------------------------------------------------------------------
-CLEAN_LINE:
+CLEAN_LINE: 'This line calls the PARSE_WEB_DATA_PAGE_SYNTAX_FUNC function to replace
+'HTML coding and ASCII coding in the webpage source code with string and number values
+'useful for further analysis.
 '------------------------------------------------------------------------------------
     DATA_STR = PARSE_WEB_DATA_PAGE_SYNTAX_FUNC(DATA_STR, 1)
 '------------------------------------------------------------------------------------
@@ -652,13 +779,29 @@ ERROR_LABEL:
 SAVE_WEB_DATA_PAGE_FUNC = PUB_WEB_DATA_SYSTEM_ERROR_STR
 End Function
 
+'The XML object is called in the CALL_WEB_DATA_PAGE_FUNC function through the SAVE_WEB_DATA_PAGE_FUNC
+'function. It is used to retrieve webpage source code with given webpage URL. The XML object is much
+'preferred over IE since it is much faster and uses significantly less memory.
+
 Function GET_WEB_DATA_PAGE_FUNC(ByVal pURL As String, _
 Optional ByVal pPos As Variant = 1, _
 Optional ByVal pLen As Integer = 32767, _
 Optional ByVal pOffset As Integer = 0, _
 Optional ByVal pUseIE As Integer = 0)
-                         '(ByVal i As Integer, _
-ByVal j As Integer)
+'(ByVal i As Integer, ByVal j As Integer)
+
+'Inputs:
+'pURL: URL of the required webpage
+
+'pPos: starting position of extraction of the source code, or the key character that is searched in the target source code, default is 1
+
+'pLen: length of the extraction of the source code, default is 32767 (maximum integer)
+
+'pOffset: if pPos is a string (character), then this variable is used to determine the starting position of extraction relative to the location
+'of the key character, default is 0
+
+'pUseIE: type of the object used to retrieve the source code. The default is 0, corresponding to use the XMLHTTP object
+
 
 'Debug.Print GET_WEB_DATA_PAGE_FUNC("http://www.barchart.com/data/performance.phpx?sym=MSFT", "sig=""5""", 50)
 
@@ -668,7 +811,7 @@ GET_WEB_DATA_PAGE_FUNC = SAVE_WEB_DATA_PAGE_FUNC(pURL, pUseIE, True, 0, True, pP
 
 Exit Function
 ERROR_LABEL:
-GET_WEB_DATA_PAGE_FUNC = Err.number
+GET_WEB_DATA_PAGE_FUNC = Err.Number
 End Function
 
 
@@ -744,6 +887,17 @@ ERROR_LABEL:
 CALL_WEB_DATA_PAGE_FUNC = PUB_WEB_DATA_SYSTEM_ERROR_STR
 End Function
 
+'-----------------------------------------------------------------------------------------------------------
+'The idea for this function came from Randy Harmelink's stock market functions add-in.
+'finance.groups.yahoo.com/group/smf_addin//
+
+'This function is very useful since it encapsulates all of the variability associate with
+'grabbing data from different web sources within one function. The function's input includes
+'DATA1_STR, which is the source HTML code, along with 3 other optional inputs. One of the
+'optional inputs, the OUTPUT is very important since it provides context regarding the HTML
+'code. This function uses this context and grabs the actual data value from the HTML code.
+'The benefits to having this is one function is maintainability. In the future, this function
+'can be edited to grab specific data points if the web site changes.
 
 Private Function PARSE_WEB_DATA_FRAME_FUNC(ByVal DATA1_STR As String, _
 Optional ByVal OUTPUT As String, _
@@ -1318,6 +1472,16 @@ ByVal END_STR As String, _
 ByVal CELLS_INT As Integer, _
 ByVal LOOK_INT As Integer, _
 Optional ByVal ERROR_STR As String = "--") 'As Variant
+
+'After making all the text uppercase so that the search is not case sensitive, the
+'function finds the first position where FIND1_STR occurs in DATA_STR.  If there are
+'values in FIND2_STR, FIND3_STR, and FIND4_STR, the string is searched starting from
+'the last search position. Once the FIND4_STR is found, it is split by "|" and put into
+'an array. Each of these are searched for in the DATA_STR until one is found. The function
+'then skips the number of rows indicated by the NO_ROWS input as long as it is before the
+'position of the END_STR, and then the number of cells indicated by the CELLS_INT input.
+'The contents of this cell between the html tags is what is returned from the function.
+
 'RCHExtractData
 
 'PARAMETERS
@@ -1757,7 +1921,7 @@ PARSE_WEB_DATA_TABLE_FUNC = TEMP_MATRIX
 
 Exit Function
 ERROR_LABEL:
-PARSE_WEB_DATA_TABLE_FUNC = Err.number
+PARSE_WEB_DATA_TABLE_FUNC = Err.Number
 End Function
 
 
@@ -1835,8 +1999,12 @@ PARSE_WEB_DATA_PAGE_SYNTAX_FUNC = DATA_STR
 
 Exit Function
 ERROR_LABEL:
-PARSE_WEB_DATA_PAGE_SYNTAX_FUNC = Err.number
+PARSE_WEB_DATA_PAGE_SYNTAX_FUNC = Err.Number
 End Function
+
+'This function removes the cache for all URLs downloaded with the XML object
+'and calls the START_WEB_DATA_SYSTEM_FUNC, which resets the hash tables and
+'recalculates the cells in excel.
 
 Sub RESET_WEB_DATA_SYSTEM_FUNC()
 
@@ -1858,7 +2026,12 @@ End If
 End Sub
 
 
-' Reset stored ticker array
+'This subroutine basically initiates the data gathering activity by creating collection and hash tables.
+'First, the PUB_WEB_DATA_TABLES_FLAG is set false to indicate that no hash table has been created yet.
+'Then it goes on creating the collection for web pages, the hash table for web data records and web data
+'elements.  If LOAD_WEB_DATA_RECORD_FUNC  returns false, means there was error on cleaning the webpage
+'data; proceed to error label and destroy the afforementioned objects, and exit the subroutine; otherwise,
+'set the PUB_WEB_DATA_TABLES_FLAGS to true and exit the subroutine.
 
 Sub START_WEB_DATA_SYSTEM_FUNC()
 
@@ -1900,7 +2073,32 @@ Set PUB_WEB_DATA_PAGES_HASH = Nothing
 Set PUB_WEB_DATA_ELEMENTS_HASH = Nothing
 End Sub
 
+
 Function LOAD_WEB_DATA_RECORDS_FUNC()
+
+'The function begins with declaring i, j, k, SROW and NROWS as variables which will be used for
+'indexing iterations. Variables DATA_STR, TEMP_STR and DATA_ARR will be used for performing operations
+'on the data and SRC_URL_STR that will which will contain the web directory to the data file
+ 
+'The function loops for each existing data file, which in this case is 9. In each iteration, the
+'SRC_URL_STR is constructed to contain the web address of the data file. The function then downloads the file.
+
+'If an error occurred while retrieving the file, DATA_ARR will return an error.
+
+'A for loop is then used to trim each element and replace add-in functions from other websites with existing
+'functions programmed in this module. Then the For loop is used, with NROWS - SROW iterations.
+'First the DATA_ARR of index j is assigned to DATA_STR. If DATA_STR doesn't equal to the Chr(13) delimiter and
+'Trim(DATA_ARR) doesn't return empty value (DATA_ARR doesn't contain spaces only) and DATA_STR doesn't equal to 0,
+'then the function assigns the trimmed DATA_ARR to the DATA_ARR, then deletes all delimiters Chr(13) from the
+'string. Next, "smfGetTagContent" substring is replaced with the return of PARSE_WEB_DATA_TAG_FUNC,
+'"RCHGetTableCell" substring is replaced with the return of RETRIEVE_WEB_DATA_CELL_FUNC, "smfStrExtr" is replaced
+'with the return of EXTRACT_WEB_DATA_STRING_FUNC.
+ 
+'The TEMP_STR is then assigned the first character from DATA_ARR. If it is not empty, then the position of the
+'PUB_WEB_DATA_ELEMENT_DELIM_STR position in the DATA_STR is assigned to k. Then the previous element is assigned
+'to the TEMP_STR. If the Value of TEMP_STR doesn't equal 0, then the nested loop If checks, whether the
+'PUB_WEBDATA_RECODRS_HASH of TEMP_STR exists, then deletes it and adds the substring from the DATA_STR positioned
+'at k+1 to the PUB_WEBDATA_RECORDS_HASH and begins the next iteration.
 
 Dim i As Long
 Dim j As Long
@@ -1968,6 +2166,14 @@ Exit Function
 ERROR_LABEL:
 LOAD_WEB_DATA_RECORDS_FUNC = False
 End Function
+
+'This function takes INDEX_RNG as an input and ensures that INDEX_RNG is a 2D array with either
+'multiple rows, or is a single cell. If either of these are untrue, they are adjusted.
+
+'The headings string that has been set, is separated into an array by "," in order to set the
+'first row of the matrix to these headings. Other than the headings row, the first column is
+'the INDEX_VECTOR. For each element in the INDEX_VECTOR, RETRIEVE_WEB_ELEMENT_FUNC is used to
+'download that element's value from the web.
 
 Function RETRIEVE_WEB_DATA_RECORDS_FUNC(ByVal INDEX_RNG As Variant, _
 Optional ByVal ERROR_STR As String = "--")
@@ -2129,7 +2335,7 @@ VERSION_STR = RETRIEVE_WEB_DATA_ELEMENT_FUNC("Version")    ' Initialize the list
 For Each DSHEET In SRC_WBOOK.Worksheets
     For j = 1 To NSIZE
         Select Case True
-           Case DSHEET.name = RETRIEVE_WEB_DATA_ELEMENT_FUNC("Source", j): Exit For
+           Case DSHEET.Name = RETRIEVE_WEB_DATA_ELEMENT_FUNC("Source", j): Exit For
            Case j = NSIZE: GoTo 1985
         End Select
     Next j
@@ -2152,7 +2358,7 @@ For Each DSHEET In SRC_WBOOK.Worksheets
           j = j + 1     ' Go to next available element
           SOURCE_STR = RETRIEVE_WEB_DATA_ELEMENT_FUNC("Source", j)   ' Get data source of element
           If SOURCE_STR = "EOL" Then GoTo 1984
-          If SOURCE_STR <> DSHEET.name Then GoTo 1983    ' Not an applicable element for worksheet
+          If SOURCE_STR <> DSHEET.Name Then GoTo 1983    ' Not an applicable element for worksheet
           
           k = k + 1       ' Go to next output column
           If DCELL.Cells(2, k) = "" Then
